@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
 
 public class BarrigaTest extends BaseTest {
 
@@ -49,5 +50,103 @@ public class BarrigaTest extends BaseTest {
             .statusCode(201)
         ;
 
+    }
+
+    @Test
+    public void deveAlterarContaComSucesso() {
+        given()
+            .header("Authorization", "JWT " + TOKEN)
+            .body("{\"nome\": \"conta alterada\"}")
+        .when()
+            .put("/contas/2527356")
+        .then()
+            .statusCode(200)
+            .body("nome", is("conta alterada"))
+        ;
+
+    }
+
+    @Test
+    public void naoDeveInserirContaMesmoNome() {
+        given()
+            .header("Authorization", "JWT " + TOKEN)
+            .body("{\"nome\": \"conta alterada\"}")
+        .when()
+            .post("/contas")
+        .then()
+            .statusCode(400)
+            .body("error", is("Já existe uma conta com esse nome!"))
+        ;
+
+    }
+
+    @Test
+    public void deveInserirMovimentacaoComSucesso() {
+        Movimentacao mov =  getMovimentacaoValida();
+
+        given()
+            .header("Authorization", "JWT " + TOKEN)
+            .body(mov)
+        .when()
+            .post("/transacoes")
+        .then()
+            .statusCode(201)
+        ;
+
+    }
+
+    @Test
+    public void deveValidarCamposObrigatoriosMovimentacao() {
+        given()
+            .header("Authorization", "JWT " + TOKEN)
+            .body("{}")
+        .when()
+            .post("/transacoes")
+        .then()
+            .statusCode(400)
+            .body("$", hasSize(8))
+            .body("msg", hasItems(
+                    "Data da Movimentação é obrigatório",
+                    "Data do pagamento é obrigatório",
+                    "Descrição é obrigatório",
+                    "Interessado é obrigatório",
+                    "Valor é obrigatório",
+                    "Valor deve ser um número",
+                    "Conta é obrigatório",
+                    "Situação é obrigatório"
+                ))
+        ;
+
+    }
+
+    @Test
+    public void naoDeveInserirMovimentacaoComDataFutura() {
+        Movimentacao mov = getMovimentacaoValida();
+        mov.setData_transacao("30/09/2100");
+
+        given()
+            .header("Authorization", "JWT " + TOKEN)
+            .body(mov)
+        .when()
+            .post("/transacoes")
+        .then()
+            .statusCode(400)
+            .body("$", hasSize(1))
+            .body("msg", hasItems("Data da Movimentação deve ser menor ou igual à data atual"))
+        ;
+
+    }
+
+    private Movimentacao getMovimentacaoValida() {
+        Movimentacao mov =  new Movimentacao();
+        mov.setConta_id(2527356);
+        mov.setDescricao("Descricao de movimentacao");
+        mov.setEnvolvido("Envolvido na mov");
+        mov.setTipo("REC");
+        mov.setData_transacao("01/01/2000");
+        mov.setData_pagamento("10/05/2010");
+        mov.setValor(100f);
+        mov.setStatus(true);
+        return mov;
     }
 }
