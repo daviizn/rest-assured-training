@@ -36,7 +36,7 @@ public class BarrigaTest extends BaseTest {
             .statusCode(200)
             .extract().path("token");
 
-        RestAssured.requestSpecification.header("Authorization", "JWT" + TOKEN);
+        RestAssured.requestSpecification.header("Authorization", "JWT " + TOKEN);
     }
 
     @Test
